@@ -109,6 +109,9 @@ CONFIG_RTW_LOG_LEVEL = 3
 # enable /proc/net/rtlxxxx/ debug interfaces
 CONFIG_PROC_DEBUG = y
 
+######################## iw country code ######################
+EXTRA_CFLAGS += -DCONFIG_RTW_IOCTL_SET_COUNTRY
+
 ######################## Wake On Lan ##########################
 CONFIG_WOWLAN = n
 #bit3: ARP enable, bit2: deauth, bit1: unicast, bit0: magic pkt.
