@@ -2729,14 +2729,21 @@ union recv_frame *recvframe_defrag(_adapter *adapter, _queue *defrag_q)
 			return NULL;
 		}
 
-		curfragnum++;
-
 		/* copy the 2nd~n fragment frame's payload to the first fragment */
 		/* get the 2nd~last fragment frame's payload */
 
 		wlanhdr_offset = pnfhdr->attrib.hdrlen + pnfhdr->attrib.iv_len;
 
 		recvframe_pull(pnextrframe, wlanhdr_offset);
+
+		if ((pfhdr->rx_end - pfhdr->rx_tail) < pnfhdr->len) {
+			RTW_INFO("Not enough buffer space, drop fragmented frame!\n");
+			rtw_free_recvframe(prframe, pfree_recv_queue);
+			rtw_free_recvframe_queue(defrag_q, pfree_recv_queue);
+			return NULL;
+		}
+
+		curfragnum++;
 
 		/* append  to first fragment frame's tail (if privacy frame, pull the ICV) */
 		recvframe_pull_tail(prframe, pfhdr->attrib.icv_len);
@@ -3645,8 +3652,15 @@ static int recv_indicatepkt_reorder(_adapter *padapter, union recv_frame *prfram
 
 	if(rtw_test_and_clear_bit(RTW_RECV_ACK_OR_TIMEOUT, &preorder_ctrl->rec_abba_rsp_ack))
 		preorder_ctrl->indicate_seq = 0xFFFF;
+	if(rtw_test_and_clear_bit(RTW_RECV_REORDER_WOW, &preorder_ctrl->rec_abba_rsp_ack)) {
+		preorder_ctrl->indicate_seq = 0xFFFF;
+		RTW_INFO("DBG_RX_SEQ %s:preorder_ctrl->rec_abba_rsp_ack = %lu,indicate_seq = %d\n"
+		, __func__
+		, preorder_ctrl->rec_abba_rsp_ack
+		, preorder_ctrl->indicate_seq);
+	}
 	#ifdef DBG_RX_SEQ
-	RTW_INFO("DBG_RX_SEQ %s:preorder_ctrl->rec_abba_rsp_ack = %u,indicate_seq = %d\n"
+	RTW_INFO("DBG_RX_SEQ %s:preorder_ctrl->rec_abba_rsp_ack = %lu,indicate_seq = %d\n"
 		, __func__
 		, preorder_ctrl->rec_abba_rsp_ack
 		, preorder_ctrl->indicate_seq);

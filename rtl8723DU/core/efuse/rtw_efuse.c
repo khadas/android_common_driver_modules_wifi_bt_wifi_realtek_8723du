@@ -3420,7 +3420,7 @@ u8 rtw_efuse_file_read(PADAPTER padapter, u8 *filepath, u8 *buf, u32 len)
 	return _TRUE;
 }
 
-
+#if !defined(CONFIG_RTW_ANDROID_GKI)
 u8 rtw_efuse_file_store(PADAPTER padapter, u8 *filepath, u8 *buf, u32 len)
 {
 	int err = 0, i = 0, j = 0, mapLen = 0 ;
@@ -3456,6 +3456,7 @@ u8 rtw_efuse_file_store(PADAPTER padapter, u8 *filepath, u8 *buf, u32 len)
 
 	return err;
 }
+#endif /* !defined(CONFIG_RTW_ANDROID_GKI) */
 
 #ifdef CONFIG_EFUSE_CONFIG_FILE
 u32 rtw_read_efuse_from_file(const char *path, u8 *buf, int map_size)

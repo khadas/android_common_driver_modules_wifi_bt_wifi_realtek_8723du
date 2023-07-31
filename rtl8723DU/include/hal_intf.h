@@ -158,7 +158,6 @@ typedef enum _HW_VARIABLES {
 	HW_VAR_CHK_MGQ_CPU_EMPTY,
 	HW_VAR_DL_BCN_SEL,
 	HW_VAR_AMPDU_MAX_TIME,
-	HW_VAR_WIRELESS_MODE,
 	HW_VAR_USB_MODE,
 	HW_VAR_PORT_SWITCH,
 	HW_VAR_PORT_CFG,
@@ -343,7 +342,7 @@ struct hal_ops {
 #endif
 
 	/*** DM section ***/
-#ifdef CONFIG_RTW_SW_LED
+#if defined(CONFIG_RTW_HW_LED) || defined(CONFIG_RTW_SW_LED)
 	void	(*InitSwLeds)(_adapter *padapter);
 	void	(*DeInitSwLeds)(_adapter *padapter);
 #endif
@@ -703,7 +702,7 @@ void	rtw_hal_free_data(_adapter *padapter);
 
 void rtw_hal_dm_init(_adapter *padapter);
 void rtw_hal_dm_deinit(_adapter *padapter);
-#ifdef CONFIG_RTW_SW_LED
+#if defined(CONFIG_RTW_HW_LED) || defined(CONFIG_RTW_SW_LED)
 void rtw_hal_sw_led_init(_adapter *padapter);
 void rtw_hal_sw_led_deinit(_adapter *padapter);
 #endif

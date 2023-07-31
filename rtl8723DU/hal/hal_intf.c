@@ -424,9 +424,15 @@ u8 rtw_hal_trxnss_init(_adapter *adapter)
 	return _SUCCESS;
 }
 
-#ifdef CONFIG_RTW_SW_LED
+
 void rtw_hal_sw_led_init(_adapter *padapter)
 {
+#if defined(CONFIG_RTW_HW_LED)
+
+	if (padapter->hal_func.InitSwLeds)
+		padapter->hal_func.InitSwLeds(padapter);
+
+#elif defined(CONFIG_RTW_SW_LED)
 	struct led_priv *ledpriv = adapter_to_led(padapter);
 
 	if (ledpriv->bRegUseLed == _FALSE)
@@ -440,10 +446,15 @@ void rtw_hal_sw_led_init(_adapter *padapter)
 		rtw_led_set_ctl_en_mask_primary(padapter);
 		rtw_led_set_iface_en(padapter, 1);
 	}
+#endif
 }
 
 void rtw_hal_sw_led_deinit(_adapter *padapter)
 {
+#if defined(CONFIG_RTW_HW_LED)
+	if (padapter->hal_func.DeInitSwLeds)
+		padapter->hal_func.DeInitSwLeds(padapter);
+#elif defined(CONFIG_RTW_SW_LED)
 	struct led_priv *ledpriv = adapter_to_led(padapter);
 
 	if (ledpriv->bRegUseLed == _FALSE)
@@ -454,8 +465,8 @@ void rtw_hal_sw_led_deinit(_adapter *padapter)
 
 	if (padapter->hal_func.DeInitSwLeds)
 		padapter->hal_func.DeInitSwLeds(padapter);
-}
 #endif
+}
 
 u32 rtw_hal_power_on(_adapter *padapter)
 {

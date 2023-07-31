@@ -13,6 +13,82 @@
  *
  *****************************************************************************/
 #include "rtl8723d_hal.h"
+
+/*
+ * ================================================================================
+ * Interface to manipulate LED objects.
+ * ================================================================================
+ */
+
+/*
+ * ================================================================================
+ * Default LED behavior.
+ * ================================================================================
+ */
+
+/*
+ * Description:
+ * Initialize all LED_871x objects.
+ */
+void
+rtl8723du_InitLeds(
+	PADAPTER padapter
+)
+{
+#if defined(CONFIG_RTW_HW_LED)
+	u32 ledcfg;
+	//LED2 HW config
+	ledcfg = rtw_read32(padapter , REG_LEDCFG0);
+	ledcfg |= BIT21;
+	ledcfg &= ~(BIT22 | BIT30);
+	rtw_write32(padapter , REG_LEDCFG0 , ledcfg);
+	
+	printk("LED2 HW config = %x\n", ledcfg);
+	//Enable External WOL function
+	ledcfg = rtw_read32(padapter , REG_GPIO_INTM);
+	ledcfg &= ~(BIT16);
+	rtw_write32(padapter , REG_GPIO_INTM , ledcfg);
+	printk("Enable External WOL function = %x\n", ledcfg);
+	
+#elif defined(CONFIG_RTW_SW_LED)
+	struct led_priv *pledpriv = adapter_to_led(padapter);
+
+	pledpriv->LedControlHandler = LedControlUSB;
+
+	pledpriv->SwLedOn = SwLedOn_8723DU;
+	pledpriv->SwLedOff = SwLedOff_8723DU;
+
+	InitLed(padapter, &(pledpriv->SwLed0), LED_PIN_LED0);
+
+	InitLed(padapter, &(pledpriv->SwLed1), LED_PIN_LED1);
+#endif
+
+}
+
+/*
+ * Description:
+ * DeInitialize all LED_819xUsb objects.
+ */
+void
+rtl8723du_DeInitLeds(
+	PADAPTER padapter
+)
+{
+#if defined(CONFIG_RTW_HW_LED)
+	u32 ledcfg;
+	//LED2 HW config
+	ledcfg = rtw_read32(padapter , REG_LEDCFG0);
+	ledcfg &= ~(BIT21);
+	ledcfg |= BIT22 | BIT30;
+	rtw_write32(padapter , REG_LEDCFG0 , ledcfg);
+#elif defined(CONFIG_RTW_SW_LED)
+	struct led_priv *ledpriv = adapter_to_led(padapter);
+
+	DeInitLed(&(ledpriv->SwLed0));
+	DeInitLed(&(ledpriv->SwLed1));
+#endif
+}
+
 #ifdef CONFIG_RTW_SW_LED
 
 /*
@@ -72,54 +148,5 @@ SwLedOff_8723DU(
 exit:
 	pLed->bLedOn = _FALSE;
 
-}
-
-/*
- * ================================================================================
- * Interface to manipulate LED objects.
- * ================================================================================
- */
-
-/*
- * ================================================================================
- * Default LED behavior.
- * ================================================================================
- */
-
-/*
- * Description:
- * Initialize all LED_871x objects.
- */
-void
-rtl8723du_InitSwLeds(
-	PADAPTER padapter
-)
-{
-	struct led_priv *pledpriv = adapter_to_led(padapter);
-
-	pledpriv->LedControlHandler = LedControlUSB;
-
-	pledpriv->SwLedOn = SwLedOn_8723DU;
-	pledpriv->SwLedOff = SwLedOff_8723DU;
-
-	InitLed(padapter, &(pledpriv->SwLed0), LED_PIN_LED0);
-
-	InitLed(padapter, &(pledpriv->SwLed1), LED_PIN_LED1);
-}
-
-
-/*
- * Description:
- * DeInitialize all LED_819xUsb objects.
- */
-void
-rtl8723du_DeInitSwLeds(
-	PADAPTER padapter
-)
-{
-	struct led_priv *ledpriv = adapter_to_led(padapter);
-
-	DeInitLed(&(ledpriv->SwLed0));
-	DeInitLed(&(ledpriv->SwLed1));
 }
 #endif

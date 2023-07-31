@@ -5762,7 +5762,7 @@ ssize_t proc_set_wakeup_event(struct file *file, const char __user *buffer,
 	else
 		return -EFAULT;
 
-	if (num == 1 && wakeup_event <= 0x0f) {
+	if (num == 1 && wakeup_event <= 0x07) {
 		registry_par->wakeup_event = wakeup_event;
 
 		if (wakeup_event & BIT(1))

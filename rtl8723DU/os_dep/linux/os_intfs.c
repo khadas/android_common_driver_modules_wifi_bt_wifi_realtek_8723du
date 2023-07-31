@@ -499,6 +499,12 @@ MODULE_PARM_DESC(ifname, "The default name to allocate for first interface");
 module_param(if2name, charp, 0644);
 MODULE_PARM_DESC(if2name, "The default name to allocate for second interface");
 
+#if defined(CONFIG_PLATFORM_ANDROID) && (CONFIG_IFACE_NUMBER > 2)
+char *if3name = "ap%d";
+module_param(if3name, charp, 0644);
+MODULE_PARM_DESC(if3name, "The default name to allocate for third interface");
+#endif
+
 char *rtw_initmac = 0;  /* temp mac address if users want to use instead of the mac address in Efuse */
 
 #ifdef CONFIG_CONCURRENT_MODE
@@ -1385,7 +1391,9 @@ uint loadparam(_adapter *padapter)
 
 	snprintf(registry_par->ifname, 16, "%s", ifname);
 	snprintf(registry_par->if2name, 16, "%s", if2name);
-
+#if defined(CONFIG_PLATFORM_ANDROID) && (CONFIG_IFACE_NUMBER > 2)
+	snprintf(registry_par->if3name, 16, "%s", if3name);
+#endif
 	registry_par->notch_filter = (u8)rtw_notch_filter;
 
 #ifdef CONFIG_CONCURRENT_MODE
@@ -3000,7 +3008,7 @@ u8 rtw_init_drv_sw(_adapter *padapter)
 	if (is_primary_adapter(padapter))
 		rtw_rfctl_chplan_init(padapter);
 
-#ifdef CONFIG_RTW_SW_LED
+#if defined(CONFIG_RTW_HW_LED) || defined(CONFIG_RTW_SW_LED)
 	rtw_hal_sw_led_init(padapter);
 #endif
 #ifdef DBG_CONFIG_ERROR_DETECT
@@ -3062,7 +3070,7 @@ void rtw_cancel_all_timer(_adapter *padapter)
 
 	_cancel_timer_ex(&adapter_to_dvobj(padapter)->dynamic_chk_timer);
 	_cancel_timer_ex(&adapter_to_dvobj(padapter)->periodic_tsf_update_end_timer);
-#ifdef CONFIG_RTW_SW_LED
+#if defined(CONFIG_RTW_HW_LED) || defined(CONFIG_RTW_SW_LED)
 	/* cancel sw led timer */
 	rtw_hal_sw_led_deinit(padapter);
 #endif
@@ -3730,6 +3738,10 @@ int rtw_os_ndevs_register(struct dvobj_priv *dvobj)
 				name = regsty->ifname;
 			else if (adapter->iface_id == IFACE_ID1)
 				name = regsty->if2name;
+#if defined(CONFIG_PLATFORM_ANDROID) && (CONFIG_IFACE_NUMBER > 2)
+			else if (adapter->iface_id == IFACE_ID2)
+				name = regsty->if3name;
+#endif
 			else
 				name = "wlan%d";
 

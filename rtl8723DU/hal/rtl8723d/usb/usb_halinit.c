@@ -199,6 +199,13 @@ static u32 _InitPowerOn_8723du(PADAPTER padapter)
 	RTW_INFO("%s: %s\n", __func__,
 		(value8 & BIT0) ? "LDO Mode" : "SPS Mode");
 
+	if (!(value8 & BIT0)) {
+		/*MAC team suggest to set 0x38[6] = 1 in SPS Mode*/
+		value8 = rtw_read8(padapter, REG_PWR_DATA_8723D);
+		value8 |= BIT(6);
+		rtw_write8(padapter, REG_PWR_DATA_8723D, value8);
+	}
+
 	return status;
 }
 
@@ -517,10 +524,6 @@ _InitAdaptiveCtrl(
 	/* CF-END Threshold */
 	/* m_spIoBase->rtw_write8(REG_CFEND_TH, 0x1); */
 
-	/* SIFS (used in NAV) */
-	value16 = _SPEC_SIFS_CCK(0x10) | _SPEC_SIFS_OFDM(0x10);
-	rtw_write16(padapter, REG_SPEC_SIFS, value16);
-
 	/* Retry Limit */
 	value16 = BIT_LRL(RL_VAL_STA) | BIT_SRL(RL_VAL_STA);
 	rtw_write16(padapter, REG_RETRY_LIMIT, value16);
@@ -532,16 +535,6 @@ _InitEDCA(
 	PADAPTER padapter
 )
 {
-	/* Set Spec SIFS (used in NAV) */
-	rtw_write16(padapter, REG_SPEC_SIFS, 0x100a);
-	rtw_write16(padapter, REG_MAC_SPEC_SIFS, 0x100a);
-
-	/* Set SIFS for CCK */
-	rtw_write16(padapter, REG_SIFS_CTX, 0x100a);
-
-	/* Set SIFS for OFDM */
-	rtw_write16(padapter, REG_SIFS_TRX, 0x100a);
-
 	/* TXOP */
 	rtw_write32(padapter, REG_EDCA_BE_PARAM, 0x005EA42B);
 	rtw_write32(padapter, REG_EDCA_BK_PARAM, 0x0000A44F);
@@ -2264,10 +2257,10 @@ void rtl8723du_set_hal_ops(PADAPTER padapter)
 	pHalFunc->init_recv_priv = &rtl8723du_init_recv_priv;
 	pHalFunc->free_recv_priv = &rtl8723du_free_recv_priv;
 
-#ifdef CONFIG_RTW_SW_LED
-	pHalFunc->InitSwLeds = &rtl8723du_InitSwLeds;
-	pHalFunc->DeInitSwLeds = &rtl8723du_DeInitSwLeds;
-#endif/*CONFIG_RTW_SW_LED */
+#if defined(CONFIG_RTW_HW_LED) || defined(CONFIG_RTW_SW_LED)
+	pHalFunc->InitSwLeds = &rtl8723du_InitLeds;
+	pHalFunc->DeInitSwLeds = &rtl8723du_DeInitLeds;
+#endif
 
 	pHalFunc->init_default_value = &rtl8723d_init_default_value;
 	pHalFunc->intf_chip_configure = &rtl8723du_interface_configure;

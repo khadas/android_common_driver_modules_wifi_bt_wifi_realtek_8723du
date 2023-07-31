@@ -733,4 +733,9 @@ static inline void rtw_enter_protsel_macsleep(_adapter *padapter, u8 port_sel) {
 static inline bool rtw_assert_protsel_macsleep(_adapter *padapter, u32 addr, u8 len) {return true; }
 static inline void rtw_leave_protsel_macsleep(_adapter *padapter) {}
 #endif
+
+#ifndef RTW_HALMAC
+void rtw_hal_init_sifs_backup(_adapter *adapter);
+#endif
+
 #endif /* __HAL_COMMON_H__ */

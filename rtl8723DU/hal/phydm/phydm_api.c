@@ -3081,6 +3081,13 @@ phydm_api_trx_mode(void *dm_void, enum bb_path tx_path, enum bb_path rx_path,
 						  tx_path_ctrl);
 		break;
 	#endif
+	
+	#if (RTL8723F_SUPPORT)
+	case ODM_RTL8723F:
+		ret = config_phydm_trx_mode_8723f(dm, tx_path, rx_path,
+						  tx_path_ctrl);
+		break;
+	#endif
 
 	#if (RTL8812F_SUPPORT)
 	case ODM_RTL8812F:

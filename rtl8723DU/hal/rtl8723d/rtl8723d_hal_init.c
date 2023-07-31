@@ -3026,7 +3026,8 @@ void rtl8723d_fill_fake_txdesc(
 
 void rtl8723d_InitAntenna_Selection(PADAPTER padapter)
 {
-	rtw_write8(padapter, REG_LEDCFG2, 0x82);
+	/* only set related BIT to avoid wrong configuration */
+	rtw_write8(padapter, REG_LEDCFG2, rtw_read8(padapter, REG_LEDCFG2) | BIT7 | BIT2);
 }
 
 void rtl8723d_CheckAntenna_Selection(PADAPTER padapter)
@@ -4612,28 +4613,12 @@ u8 SetHwReg8723D(PADAPTER padapter, u8 variable, u8 *val)
 		break;
 
 	case HW_VAR_RESP_SIFS:
-#if 0
-		/* SIFS for OFDM Data ACK */
-		rtw_write8(padapter, REG_SIFS_CTX + 1, val[0]);
-		/* SIFS for OFDM consecutive tx like CTS data! */
-		rtw_write8(padapter, REG_SIFS_TRX + 1, val[1]);
-
-		rtw_write8(padapter, REG_SPEC_SIFS + 1, val[0]);
-		rtw_write8(padapter, REG_MAC_SPEC_SIFS + 1, val[0]);
-
-		/* 20100719 Joseph: Revise SIFS setting due to Hardware register definition change. */
-		rtw_write8(padapter, REG_R2T_SIFS + 1, val[0]);
-		rtw_write8(padapter, REG_T2T_SIFS + 1, val[0]);
-
-#else
-		/* SIFS_Timer = 0x0a0a0808; */
-		/* RESP_SIFS for CCK */
-		rtw_write8(padapter, REG_RESP_SIFS_CCK, val[0]); /* SIFS_T2T_CCK (0x08) */
-		rtw_write8(padapter, REG_RESP_SIFS_CCK + 1, val[1]); /* SIFS_R2T_CCK(0x08) */
-		/* RESP_SIFS for OFDM */
-		rtw_write8(padapter, REG_RESP_SIFS_OFDM, val[2]); /* SIFS_T2T_OFDM (0x0a) */
-		rtw_write8(padapter, REG_RESP_SIFS_OFDM + 1, val[3]); /* SIFS_R2T_OFDM(0x0a) */
-#endif
+		#ifdef RTW_SIFS_IOT_BY_CORE
+		/*
+		* set IOT value here or restore to default value:
+		* hal_data->init_reg_0x428, init_reg_0x514, init_reg_0x63a, init_reg_0x63c
+		*/
+		#endif
 		break;
 
 	case HW_VAR_ACK_PREAMBLE: {

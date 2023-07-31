@@ -94,7 +94,7 @@ CONFIG_RTW_MBO = n
 CONFIG_SEC_AMSDU_MODE = non-spp
 ########################## Android ###########################
 # CONFIG_RTW_ANDROID - 0: no Android, 4/5/6/7/8/9/10/11 : Android version
-CONFIG_RTW_ANDROID = 0
+CONFIG_RTW_ANDROID = 11
 
 ifeq ($(shell test $(CONFIG_RTW_ANDROID) -gt 0; echo $$?), 0)
 EXTRA_CFLAGS += -DCONFIG_RTW_ANDROID=$(CONFIG_RTW_ANDROID)
@@ -2466,6 +2466,11 @@ all: modules
 
 modules:
 	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(KSRC) M=$(M)  modules
+ifneq ($(LLVM),)
+	llvm-strip --strip-unneeded ${OUT_DIR}/$(M)/$(MODULE_NAME).ko
+else
+	$(CROSS_COMPILE)strip --strip-unneeded ${OUT_DIR}/$(M)/$(MODULE_NAME).ko
+endif
 
 strip:
 	$(CROSS_COMPILE)strip $(MODULE_NAME).ko --strip-unneeded
@@ -2525,7 +2530,7 @@ config_r:
 .PHONY: modules clean
 
 clean:
-	#$(MAKE) -C $(KSRC) M=$(shell pwd) clean
+	#$(MAKE) -C $(KSRC) M=$(M) clean
 	cd hal ; rm -fr */*/*/*.mod.c */*/*/*.mod */*/*/*.o */*/*/.*.cmd */*/*/*.ko
 	cd hal ; rm -fr */*/*.mod.c */*/*.mod */*/*.o */*/.*.cmd */*/*.ko
 	cd hal ; rm -fr */*.mod.c */*.mod */*.o */.*.cmd */*.ko
@@ -2540,3 +2545,18 @@ clean:
 	rm -fr .tmp_versions
 endif
 
+ifneq ($(srctree),)
+_EXTRA_CFLAGS :=
+_INC_CFLAGS :=
+$(foreach flag,$(EXTRA_CFLAGS),\
+ $(if $(shell echo $(flag) | grep "\-I"),\
+  $(eval _INC_CFLAGS += $(flag)),\
+  $(eval _EXTRA_CFLAGS += $(flag))\
+ )\
+)
+_INC_CFLAGS := \
+$(foreach flag,$(subst -I,,$(_INC_CFLAGS)),\
+ $(shell if test -d $(srctree)/$(flag); then echo -I$$(cd $(srctree)/$(flag) && pwd); else echo -I$(flag); fi)\
+)
+EXTRA_CFLAGS := $(_EXTRA_CFLAGS) $(_INC_CFLAGS)
+endif

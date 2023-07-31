@@ -108,9 +108,10 @@
 /* #define CONFIG_ANTENNA_DIVERSITY	 */
 /* #define SUPPORT_HW_RFOFF_DETECTED */
 
-#define CONFIG_RTW_LED
+/* #define CONFIG_RTW_LED */
 #ifdef CONFIG_RTW_LED
-	#define CONFIG_RTW_SW_LED
+	#define CONFIG_RTW_HW_LED
+	/* #define CONFIG_RTW_SW_LED */
 	#ifdef CONFIG_RTW_SW_LED
 		/* define CONFIG_RTW_LED_HANDLED_BY_CMD_THREAD */
 	#endif
@@ -200,7 +201,6 @@
 /*
  * Auto Configure Section
  */
-#define CONFIG_MINIMAL_MEMORY_USAGE
 #ifdef CONFIG_MINIMAL_MEMORY_USAGE
 	#undef CONFIG_USB_TX_AGGREGATION
 	#undef CONFIG_USB_RX_AGGREGATION

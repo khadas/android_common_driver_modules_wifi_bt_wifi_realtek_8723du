@@ -5858,7 +5858,6 @@ static u8 rtw_hal_set_remote_wake_ctrl_cmd(_adapter *adapter, u8 enable)
 	struct security_priv *psecuritypriv = &(adapter->securitypriv);
 	struct pwrctrl_priv *ppwrpriv = adapter_to_pwrctl(adapter);
 	struct registry_priv *pregistrypriv = &adapter->registrypriv;
-	u8 arp_en = pregistrypriv->wakeup_event & BIT(3);
 	u8 u1H2CRemoteWakeCtrlParm[H2C_REMOTE_WAKE_CTRL_LEN] = {0};
 	u8 ret = _FAIL, count = 0, no_wake = 0;
 	struct mlme_priv	*pmlmepriv = &(adapter->mlmepriv);
@@ -5875,12 +5874,6 @@ static u8 rtw_hal_set_remote_wake_ctrl_cmd(_adapter *adapter, u8 enable)
 		if (!ppwrpriv->wowlan_pno_enable) {
 			SET_H2CCMD_REMOTE_WAKECTRL_ENABLE(
 				u1H2CRemoteWakeCtrlParm, enable);
-			if (arp_en)
-				SET_H2CCMD_REMOTE_WAKE_CTRL_ARP_OFFLOAD_EN(
-					u1H2CRemoteWakeCtrlParm, 1);
-			else
-				SET_H2CCMD_REMOTE_WAKE_CTRL_ARP_OFFLOAD_EN(
-					u1H2CRemoteWakeCtrlParm, 0);
 	#ifdef CONFIG_GTK_OL
 			if (psecuritypriv->binstallKCK_KEK == _TRUE &&
 				(psecuritypriv->ndisauthtype == Ndis802_11AuthModeWPA2PSK || _rtw_wow_chk_cap(adapter, WOW_CAP_TKIP_OL))) {
@@ -5917,17 +5910,6 @@ static u8 rtw_hal_set_remote_wake_ctrl_cmd(_adapter *adapter, u8 enable)
 			}
 	#endif /* CONFIG_RTL8192F */
 #endif
-			if ((psecuritypriv->dot11PrivacyAlgrthm == _AES_) ||
-				(psecuritypriv->dot11PrivacyAlgrthm == _TKIP_) ||
-				(psecuritypriv->dot11PrivacyAlgrthm == _NO_PRIVACY_)) {
-				SET_H2CCMD_REMOTE_WAKE_CTRL_ARP_ACTION(
-					u1H2CRemoteWakeCtrlParm, 0);
-			} else { /* WEP etc. */
-				if (arp_en)
-					SET_H2CCMD_REMOTE_WAKE_CTRL_ARP_ACTION(
-						u1H2CRemoteWakeCtrlParm, 1);
-			}
-	
 			if (psecuritypriv->dot11PrivacyAlgrthm == _TKIP_) {
 #ifdef CONFIG_GTK_OL
 				if(_rtw_wow_chk_cap(adapter, WOW_CAP_TKIP_OL))
@@ -5938,12 +5920,33 @@ static u8 rtw_hal_set_remote_wake_ctrl_cmd(_adapter *adapter, u8 enable)
 				    IS_HARDWARE_TYPE_8812(adapter)) {
 					SET_H2CCMD_REMOTE_WAKE_CTRL_TKIP_OFFLOAD_EN(
 						u1H2CRemoteWakeCtrlParm, 0);
-					if (arp_en)
-						SET_H2CCMD_REMOTE_WAKE_CTRL_ARP_ACTION(
-							u1H2CRemoteWakeCtrlParm, 1);
 				}
 			}
-	
+
+			if (0) {
+				/* ARP wake up case */
+				SET_H2CCMD_REMOTE_WAKE_CTRL_ARP_OFFLOAD_EN(
+					u1H2CRemoteWakeCtrlParm, 1);
+				SET_H2CCMD_REMOTE_WAKE_CTRL_ARP_ACTION(
+					u1H2CRemoteWakeCtrlParm, 1);
+			} else if (pregistrypriv->wakeup_event) {
+				/* ARP no wake up case */
+				if ((psecuritypriv->dot11PrivacyAlgrthm == _AES_) ||
+				    (psecuritypriv->dot11PrivacyAlgrthm == _NO_PRIVACY_)) {
+					SET_H2CCMD_REMOTE_WAKE_CTRL_ARP_OFFLOAD_EN(
+						u1H2CRemoteWakeCtrlParm, 1);
+				}
+				#ifdef CONFIG_GTK_OL
+				else if (psecuritypriv->dot11PrivacyAlgrthm == _TKIP_ &&
+					 _rtw_wow_chk_cap(adapter, WOW_CAP_TKIP_OL)) {
+					SET_H2CCMD_REMOTE_WAKE_CTRL_ARP_OFFLOAD_EN(
+						u1H2CRemoteWakeCtrlParm, 1);
+				}
+				#endif
+			} else {
+				/* ARP no wake up and no ARP response case */
+			}
+
 			SET_H2CCMD_REMOTE_WAKE_CTRL_FW_PARSING_UNTIL_WAKEUP(
 				u1H2CRemoteWakeCtrlParm, 1);
 		}
@@ -10551,6 +10554,8 @@ void _dbg_rtw_wake_up_reason(_adapter *adapter, u8 reason)
 
 static void rtw_hal_wow_disable(_adapter *adapter)
 {
+	int i;
+	struct recv_reorder_ctrl *preorder_ctrl;
 	struct pwrctrl_priv *pwrctl = adapter_to_pwrctl(adapter);
 	struct security_priv *psecuritypriv = &adapter->securitypriv;
 	struct mlme_priv *pmlmepriv = &adapter->mlmepriv;
@@ -10668,6 +10673,16 @@ static void rtw_hal_wow_disable(_adapter *adapter)
 			rtw_sta_media_status_rpt(adapter, psta, 1);
 		}
 	}
+
+	if (psta != NULL) {
+		RTW_PRINT("rtw_set_bit RTW_RECV_REORDER_WOW\n");
+		for (i = 0; i < TID_NUM; i++) {
+			preorder_ctrl = &psta->recvreorder_ctrl[i];
+			rtw_set_bit(RTW_RECV_REORDER_WOW,
+				&preorder_ctrl->rec_abba_rsp_ack);
+		}
+	}
+
 	rtw_hal_gate_bb(adapter, _FALSE);
 }
 #if defined(CONFIG_WOW_PATTERN_IN_TXFIFO)
@@ -16704,3 +16719,62 @@ void rtw_hal_bcn_early_rpt_c2h_handler(_adapter *padapter)
 #endif
 #endif
 }
+
+#ifndef RTW_HALMAC
+void rtw_hal_init_sifs_backup(_adapter *adapter)
+{
+	HAL_DATA_TYPE *hal_data = GET_HAL_DATA(adapter);
+
+	hal_data->init_reg_0x428 = rtw_read16(adapter, 0x428);
+	hal_data->init_reg_0x514 = rtw_read32(adapter, 0x514);
+	hal_data->init_reg_0x63a = rtw_read16(adapter, 0x63a);
+	hal_data->init_reg_0x63c = rtw_read32(adapter, 0x63c);
+
+#ifndef RTW_SIFS_INIT_CHK
+#define RTW_SIFS_INIT_CHK 1
+#endif
+
+#if RTW_SIFS_INIT_CHK
+/*
+the expected initial values:
+0x428[15:0]=0x100A
+0x514[31:0]=0x0E0A0E0A
+0x63A[15:0]=0x100A
+0x63C[31:0]=0x0E0E0A0A
+*/
+#define INIT_REG_0x428 0x100A
+#define INIT_REG_0x514 0x0E0A0E0A
+#define INIT_REG_0x63A 0x100A
+#define INIT_REG_0x63C 0x0E0E0A0A
+
+	if (hal_data->init_reg_0x428 != INIT_REG_0x428) {
+		RTW_WARN("init_reg_0x428:0x%04x != 0x%04x\n", hal_data->init_reg_0x428, INIT_REG_0x428);
+		#if RTW_SIFS_INIT_CHK > 1
+		hal_data->init_reg_0x428 = INIT_REG_0x428;
+		rtw_write16(adapter, 0x428, hal_data->init_reg_0x428);
+		#endif
+	}
+	if (hal_data->init_reg_0x514 != INIT_REG_0x514) {
+		RTW_WARN("init_reg_0x514:0x%08x != 0x%08x\n", hal_data->init_reg_0x514, INIT_REG_0x514);
+		#if RTW_SIFS_INIT_CHK > 1
+		hal_data->init_reg_0x514 = INIT_REG_0x514;
+		rtw_write32(adapter, 0x514, hal_data->init_reg_0x514);
+		#endif
+	}
+	if (hal_data->init_reg_0x63a != INIT_REG_0x63A) {
+		RTW_WARN("init_reg_0x63a:0x%04x != 0x%04x\n", hal_data->init_reg_0x63a, INIT_REG_0x63A);
+		#if RTW_SIFS_INIT_CHK > 1
+		hal_data->init_reg_0x63a = INIT_REG_0x63A;
+		rtw_write16(adapter, 0x63a, hal_data->init_reg_0x63a);
+		#endif
+	}
+	if (hal_data->init_reg_0x63c != INIT_REG_0x63C) {
+		RTW_WARN("init_reg_0x63c:0x%08x != 0x%08x\n", hal_data->init_reg_0x63c, INIT_REG_0x63C);
+		#if RTW_SIFS_INIT_CHK > 1
+		hal_data->init_reg_0x63c = INIT_REG_0x63C;
+		rtw_write32(adapter, 0x63c, hal_data->init_reg_0x63c);
+		#endif
+	}
+#endif
+}
+#endif

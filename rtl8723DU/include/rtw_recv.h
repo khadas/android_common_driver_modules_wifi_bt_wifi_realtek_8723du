@@ -77,6 +77,7 @@ extern u8 rtw_rfc1042_header[];
 
 enum addba_rsp_ack_state {
 	RTW_RECV_ACK_OR_TIMEOUT,
+	RTW_RECV_REORDER_WOW
 };
 
 /* for Rx reordering buffer control */

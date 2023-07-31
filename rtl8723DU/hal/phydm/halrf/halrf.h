@@ -540,6 +540,10 @@ struct _halrf_tssi_data {
 	u8 tssi_finish_bit[PHYDM_MAX_RF_PATH];
 	u8 thermal_trigger;
 	s8 tssi_de;
+#if (RTL8723F_SUPPORT == 1)
+	s8 txagc_offset_thermaltrack[MAX_PATH_NUM_8723F];
+	u8 thermal_cal;
+#endif
 };
 
 struct _halrf_txgapk_info {
@@ -601,6 +605,8 @@ struct _hal_rf_ {
 	u8 power_track_type;
 	u8 mp_pwt_type;
 	u8 pre_band_type;
+	u32 reg1c68;
+	u32 reg2a24;
 };
 
 /*@============================================================*/
@@ -766,6 +772,8 @@ u32 halrf_get_online_tssi_de(void *dm_void, u8 path, s32 pout);
 
 void halrf_tssi_trigger(void *dm_void);
 
+void halrf_spur_compensation(void *dm_void);
+
 void halrf_txgapk_write_gain_table(void *dm_void);
 
 void halrf_txgapk_reload_tx_gain(void *dm_void);
@@ -808,6 +816,12 @@ void halrf_dump_rfk_reg(void *dm_void, char input[][16], u32 *_used,
 			      char *output, u32 *_out_len);
 
 void halrf_xtal_thermal_track(void *dm_void);
+
+void halrf_powertracking_thermal(void *dm_void);
+
+u32 halrf_tssi_turn_target_power(void *dm_void, s16 power_offset, u8 path);
+
+void halrf_tssi_set_power_offset(void *dm_void, s16 power_offset, u8 path);
 
 void halrf_rfk_power_save(void *dm_void, boolean is_power_save);
 

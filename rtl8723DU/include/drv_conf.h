@@ -83,6 +83,10 @@
 #ifdef CONFIG_RTW_ANDROID
 
 	#include <linux/version.h>
+
+	#ifndef CONFIG_PLATFORM_ANDROID
+	#define CONFIG_PLATFORM_ANDROID
+	#endif
 	
 	#ifndef CONFIG_IOCTL_CFG80211
 	#define CONFIG_IOCTL_CFG80211
@@ -114,12 +118,27 @@
 		#endif
 	#endif
 
+	#if (CONFIG_RTW_ANDROID >= 11)
+		#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,4,0))
+			#ifndef CONFIG_RTW_ANDROID_GKI
+			#define CONFIG_RTW_ANDROID_GKI
+			#endif
+		#endif
+
+		#ifdef CONFIG_RTW_ANDROID_GKI
+			#ifdef CONFIG_ADAPTOR_INFO_CACHING_FILE
+			#undef CONFIG_ADAPTOR_INFO_CACHING_FILE
+			#endif
+		#endif
+	#endif
 	#ifdef CONFIG_RTW_WIFI_HAL
 	#ifndef CONFIG_RTW_WIFI_HAL_DEBUG
 	//#define CONFIG_RTW_WIFI_HAL_DEBUG
 	#endif
+	#if (CONFIG_RTW_ANDROID < 11)
 	#ifndef CONFIG_RTW_CFGVENDOR_LLSTATS
 	#define CONFIG_RTW_CFGVENDOR_LLSTATS
+	#endif
 	#endif
 	#if (CONFIG_RTW_ANDROID < 11)
 	#ifndef CONFIG_RTW_CFGVENDOR_RANDOM_MAC_OUI
